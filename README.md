@@ -1,4 +1,4 @@
-clee# DSAI Module 1 Individual Prototype: Career Coach Job Market Navigator
+# DSAI Module 1 Individual Prototype: Career Coach Job Market Navigator
 
 This is a small individual prototype built alongside the Module 1 group project.
 
