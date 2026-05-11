@@ -3,16 +3,16 @@
 # 2. Page setup - Set dashboard page. Show title and intro.
 # 3. Database path - Find db/jobs.duckdb. Stop if database is missing.
 # 4. Query helper - Create reusable run_query() function.
-
 # 5. Sidebar filters
 # 6. build_filter_sql()
 # 7. Dataset summary
 # 8. sort_dataframe()
 # 9. Dashboard tabs
-# 10. Market Demand tab
-# 11. Salary Ranges tab
-# 12. Experience Requirements tab
-# 13. Opportunity Score tab
+# 9.1 Market Demand tab
+# 9.2 Salary Ranges tab
+# 9.3 Experience Requirements tab
+# 9.4 Opportunity Score tab
+# 9.5 Talent Shortage Signals tab
 
 
 
@@ -62,7 +62,7 @@ st.write(
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DB_PATH = PROJECT_ROOT / "db" / "jobs.duckdb"
 
-# print the database path as small caption text in the dashboard
+# print the database path as small caption text in the dashboard (part of the caption)
 st.caption(f"Database path: `{DB_PATH}`")
 
 # safety check, stop if database is missing
@@ -103,12 +103,23 @@ def run_query(query):
 
 
 
-# -----------------------------
-# Sidebar filters
-# -----------------------------
+# 5. Sidebar filters
+# The user chooses filters there.
+# Later, those filter choices get turned into SQL conditions.
+# Sidebar widgets
+#    ↓
+# User selects values
+#    ↓
+# Python stores those values in variables
+#    ↓
+# build_filter_sql() turns them into SQL
+#    ↓
+# All dashboard tabs use the filtered data
 
+# title 
 st.sidebar.header("Dashboard Filters")
 
+# create a query to get all available categories:
 category_list_query = """
 SELECT DISTINCT
     category_name
@@ -117,15 +128,19 @@ WHERE category_name IS NOT NULL
 ORDER BY category_name;
 """
 
+# This runs the SQL and turns the result into a normal Python list.
+# ["category_name"] selects only the category, tolist() turns it into a Python list
 category_list = run_query(category_list_query)["category_name"].tolist()
 
+# This creates the category filter widget, create a dropdown where users can select multiple options with multiselect
+# options=category_list, means these are the available choices. default selection is nothing
 selected_categories = st.sidebar.multiselect(
     "Job categories",
     options=category_list,
     default=[]
 )
 
-
+# Ask the database for the smallest and biggest values for the sliders
 range_query = """
 SELECT
     MIN(average_salary) AS min_average_salary,
@@ -137,29 +152,45 @@ SELECT
 FROM vw_career_coach_jobs;
 """
 
+# run SQL query, store in range_df
 range_df = run_query(range_query)
 
+# Salary range slider, pulls values out of range_df 
+# from row 0, get the min and max _average_salary value.
+# row 0 because range_query returns only one row.
+# int(...) converts it into a whole number.
 min_salary = int(range_df.loc[0, "min_average_salary"])
 max_salary = int(range_df.loc[0, "max_average_salary"])
 
 # Keep the salary slider usable.
 # Some datasets may contain extreme salary outliers.
-salary_slider_max = min(max_salary, 20000)
+# min() - Use the smaller value between:
+# - actual max salary
+# - 20000
+salary_slider_max = min(max_salary, 30000)
 
+# create salary slider
 selected_salary_range = st.sidebar.slider(
     "Average salary range",
     min_value=min_salary,
     max_value=salary_slider_max,
     value=(min_salary, salary_slider_max),
-    step=500
+    step=100
 )
 
+# experience range slider, pulls values out of range_df 
+# from row 0, get the min and max _experience value.
+# row 0 because range_query returns only one row.
+# int(...) converts it into a whole number.
 min_experience = int(range_df.loc[0, "min_years_experience"])
 max_experience = int(range_df.loc[0, "max_years_experience"])
 
 # Keep the experience slider readable.
+# Some datasets may contain extreme salary outliers.
+# min() - Use the smaller value between: max exp and 20
 experience_slider_max = min(max_experience, 20)
 
+# create experience slider
 selected_experience_range = st.sidebar.slider(
     "Minimum years experience range",
     min_value=min_experience,
@@ -168,49 +199,87 @@ selected_experience_range = st.sidebar.slider(
     step=1
 )
 
+
+# posting date range slider, pulls values out of range_df 
+# This gets the earliest and latest posting dates from the data
 min_posting_date = range_df.loc[0, "min_posting_date"]
 max_posting_date = range_df.loc[0, "max_posting_date"]
 
+# date range inpuut
 selected_date_range = st.sidebar.date_input(
-    "Posting date range",
+    "Job Posting date range",
     value=(min_posting_date, max_posting_date),
     min_value=min_posting_date,
     max_value=max_posting_date
 )
 
+# number of results slider, min 5, max 20, default 10, increment of 1
 top_n = st.sidebar.slider(
     "Number of results to show",
     min_value=5,
     max_value=20,
     value=10,
-    step=5
+    step=1
 )
 
+# Create a category dropdown.
+# Create a salary slider.
+# Create an experience slider.
+# Create a date range filter.
+# Create a top-N results slider.
+# Store all user selections in Python variables.
+
+
+
+# 6. build_filter_sql(), the bridge between the sidebar controls and the SQL queries.
+# The sidebar collects user choices.
+# build_filter_sql() turns those choices into SQL language.
+# Then every tab uses that SQL to filter the database
+# The sidebar itself does not filter the data, only store users choice
+# e.g.
+# category_name IS NOT NULL
+# AND category_name IN ('Engineering', 'Information Technology')
+# AND average_salary BETWEEN 3000 AND 10000
+# AND minimum_years_experience BETWEEN 0 AND 5
+# AND new_posting_date BETWEEN DATE '2023-02-24' AND DATE '2024-05-29'
 
 def build_filter_sql():
     """
     Build SQL filters based on the sidebar selections.
     These filters are reused across the dashboard.
     """
+    # creates a Python list called filters
     filters = [
         "category_name IS NOT NULL"
     ]
 
+    # category filter
+    # If the user selects nothing, selected_categories is an empty list
+    # cleaned_categories = [category.replace("'", "''") - Handle apostrophes safely for SQL, loop through selection
+    # If a category has an apostrophe, double it so SQL doesn’t choke
     if selected_categories:
         cleaned_categories = [
             category.replace("'", "''")
             for category in selected_categories
         ]
 
+        # Join selected categories into SQL text, this turns the Python list into SQL-ready text.
+        # f"'{category}'" wraps each category in single quotes
+        # ", ".join(...) joins them with commas
         category_text = ", ".join(
             f"'{category}'"
             for category in cleaned_categories
         )
 
+        # adds a new SQL condition into the filters list
         filters.append(f"category_name IN ({category_text})")
 
+    # from salary slider, selected salary range has 2 values
     salary_min, salary_max = selected_salary_range
 
+    # adds a salary condition to filters
+    # BETWEEN - inclusive of min and max values
+    # IS NULL - Keep rows with missing salary, or rows within the selected salary range.
     filters.append(
         f"""
         (
@@ -220,8 +289,12 @@ def build_filter_sql():
         """
     )
 
+    # from experience slider, selected salary range has 2 values
     experience_min, experience_max = selected_experience_range
 
+    # adds an experience condition to filters
+    # BETWEEN - inclusive of min and max values
+    # IS NULL - Keep rows with missing experience, or rows within the selected experience range.
     filters.append(
         f"""
         (
@@ -231,24 +304,41 @@ def build_filter_sql():
         """
     )
 
+    # date input should return 2 dates
     if len(selected_date_range) == 2:
         start_date = selected_date_range[0]
         end_date = selected_date_range[1]
 
+        # add date filter
         filters.append(
             f"new_posting_date BETWEEN DATE '{start_date}' AND DATE '{end_date}'"
         )
 
+    # this is the final line inside the function.
+    # It takes the list of filters and joins them together using SQL AND.
     return " AND ".join(filters)
 
-
+# It stores the final SQL filter text inside: filter_sql. e.g. WHERE {filter_sql}
 filter_sql = build_filter_sql()
 
+# User moves salary slider
+#         ↓
+# selected_salary_range changes
+#         ↓
+# Streamlit reruns app.py
+#         ↓
+# build_filter_sql() creates new SQL
+#         ↓
+# queries use WHERE {filter_sql}
+#         ↓
+# tables and charts update
 
-# -----------------------------
-# Dataset summary
-# -----------------------------
 
+
+# 7. Dataset summary
+# shows the big dashboard numbers at the top
+# After applying the sidebar filters, recalculate how much data we are looking at. reuse filter_sql data
+# That means the summary is not fixed. It changes when the sidebar filters change
 summary_query = f"""
 SELECT
     COUNT(DISTINCT job_post_id) AS total_unique_job_postings,
@@ -260,8 +350,11 @@ FROM vw_career_coach_jobs
 WHERE {filter_sql};
 """
 
+# run summary query, store results in summary_df
+# summary_df is a pandas DataFrame with one row
 summary_df = run_query(summary_query)
 
+# split the page into three side-by-side columns.
 st.subheader("Dataset Summary")
 
 col1, col2, col3 = st.columns(3)
@@ -287,25 +380,36 @@ st.caption(
 )
 
 
-# -----------------------------
-# Sort helper
-# -----------------------------
-
+# 8. sort_dataframe()
+# This function sorts a table based on what the user selects
+# 3 inputs
+# the dataframe, the table we want to sort
+# the column to sort by
+# the direction e.g. highest or lowest first
 def sort_dataframe(dataframe, sort_column, sort_direction):
     """
     Sort a DataFrame using a selected column and direction.
     """
+    # This line creates a Boolean value: either True or False
+    # Lowest first means ascending = true
+    # highest first means ascending = false
     ascending = sort_direction == "Lowest first"
 
+    # This sorts the DataFrame and returns the sorted version.
+    # After sorting, pandas keeps the old row numbers unless we reset them, don’t keep the old index as a new column.
     return dataframe.sort_values(
         sort_column,
         ascending=ascending
     ).reset_index(drop=True)
 
+# sort control changes DataFrame
+#         ↓
+# table changes
+#         ↓
+# chart changes
 
-# -----------------------------
-# Dashboard tabs
-# -----------------------------
+
+# 9. Dashboard tabs
 
 tab1, tab2, tab3, tab4, tab5 = st.tabs(
     [

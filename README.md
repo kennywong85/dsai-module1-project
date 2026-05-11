@@ -135,3 +135,18 @@ one row per category
 
 ## Notes - Others 
 One job ad can have multiple openings.
+Did not remove 
+1. $1 salary records
+2. salary outliers
+3. low salary placeholders
+4. missing salary job records
+5. missing application/view job records
+
+Removed
+1. unreadable CSV rows may be skipped by DuckDB due to ignore_errors=True
+2. blank company/employment/position values from lookup tables
+3. clean job_posting rows without metadata_jobPostId
+4. missing/unreadable category values from category processing
+5. duplicate category master records
+6. duplicate job-category links
+7. missing category rows from category-level views
