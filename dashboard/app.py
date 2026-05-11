@@ -34,7 +34,12 @@ from pathlib import Path
 import duckdb
 import streamlit as st
 
-
+# note
+# DataFrames are being created indirectly by DuckDB
+# df() method returns the SQL result as a pandas DataFrame
+# So pandas is being used under the hood, but this script does not need to say 
+# import pandas as pd unless we personally call pandas functions 
+# like pd.DataFrame(), pd.to_datetime(), etc.
 
 # 2. Page setup
 # Set the browser page settings
