@@ -57,12 +57,10 @@ dashboard/       Streamlit dashboard app
 docs/            Problem statement, ERD, and notes  
 outputs/         Charts, screenshots, and other outputs  
 
-## Notes
-
 Raw data files and local database files are not committed to GitHub.
 
 
-## Assumptions
+## Assumptions - Relationship between category and job category tables
 - For ERD
 A job can have many categories.
 A category can have many jobs.
@@ -126,3 +124,14 @@ JOB002	3
 JOB002	9
 
 That is cleaner because each relationship gets its own row.
+
+## Assumptions - Table View
+vw_career_coach_jobs:
+many rows, one row per job-category relationship
+
+vw_talent_shortage_categories:
+one row per category
+
+
+## Notes - Others 
+One job ad can have multiple openings.

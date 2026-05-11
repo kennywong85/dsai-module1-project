@@ -567,7 +567,10 @@ def main():
 
 
 
-    # This view creates one row per category - “Which categories have high hiring demand but weaker applicant interest?”
+
+
+    # This view creates one row per category for
+    # “Which categories have high hiring demand but weaker applicant interest?”
     # total_job_postings          = how many job ads
     # total_vacancies             = how many openings
     # total_applications          = how many applications
@@ -577,6 +580,12 @@ def main():
     # applications_per_posting    = applicant interest per ad
     # views_per_posting           = browsing interest per ad
     # Looking out for high vacancies + low applications per vacancy
+    # applications_per_vacancy = total applications / total vacancies
+    # applications_per_posting = total applications / total distinct posting
+    # views_per_posting = total views / total job postings
+    # *1.0 forces decimal division.
+    # NULLIF(value, 0) means: If the value is 0, turn it into NULL. 
+    # If total vacancies is zero, use NULL instead of zero.
     con.execute(
         """
         CREATE OR REPLACE VIEW vw_talent_shortage_categories AS
@@ -609,6 +618,7 @@ def main():
     )
 
     print("\nCreated vw_talent_shortage_categories view")
+    # Count rows in the new view
     talent_shortage_count = con.execute(
         "SELECT COUNT(*) FROM vw_talent_shortage_categories"
     ).fetchone()[0]
@@ -617,6 +627,20 @@ def main():
     # close the connection when done
     con.close()
     print("\nDatabase connection closed")
+    
+    # Create a saved summary view called vw_talent_shortage_categories (from the previous view table)
+    # For each category:
+    #    count job postings
+    #    sum vacancies
+    #    sum applications
+    #    sum views
+    #    calculate median salary
+    #    calculate applications per vacancy
+    #   calculate applications per posting
+    #   calculate views per posting
+
+
+
 
 # if I run this file directly, run main().
 # python src/create_database.py will run main()
