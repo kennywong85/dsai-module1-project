@@ -1,20 +1,52 @@
-from pathlib import Path
+# Structure of code in this file
+# 1. Imports
+# 2. Page setup - Set dashboard page. Show title and intro.
+# 3. Database path - Find db/jobs.duckdb. Stop if database is missing.
+# 4. Query helper - Create reusable run_query() function.
 
+# 5. Sidebar filters
+# 6. build_filter_sql()
+# 7. Dataset summary
+# 8. sort_dataframe()
+# 9. Dashboard tabs
+# 10. Market Demand tab
+# 11. Salary Ranges tab
+# 12. Experience Requirements tab
+# 13. Opportunity Score tab
+
+
+
+# Model of how streamlit works
+# User changes filter
+#    ↓
+# Streamlit reruns app.py from top to bottom
+#     ↓
+# SQL query changes
+#     ↓
+# DataFrame changes
+#     ↓
+# table/chart changes
+
+
+
+# 1. Imports 
+from pathlib import Path
 import duckdb
 import streamlit as st
 
 
-# -----------------------------
-# Page setup
-# -----------------------------
 
+# 2. Page setup
+# Set the browser page settings
+# page_title controls the title shown in the browser tab.
+# layout="wide" tells Streamlit: Use more of the screen width.
 st.set_page_config(
     page_title="Career Coach - Job Market Navigator",
     layout="wide"
 )
 
+# Dashboard title - this creates the title at the top of the dashboard. + short description below the title.
 st.title("Career Coach - Job Market Navigator")
-
 st.write(
     """
     This dashboard helps career coaches explore Singapore job postings by
@@ -23,34 +55,52 @@ st.write(
 )
 
 
-# -----------------------------
-# Database path
-# -----------------------------
 
+# 3. Database path
+# __file__ means this Python file, dashboard/app.py.
+# .parents[1] walks up to the project root:
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DB_PATH = PROJECT_ROOT / "db" / "jobs.duckdb"
 
+# print the database path as small caption text in the dashboard
 st.caption(f"Database path: `{DB_PATH}`")
 
+# safety check, stop if database is missing
+# If the file is missing, Streamlit shows a red error box:
+# Stop running the rest of the app.
 if not DB_PATH.exists():
     st.error("Database not found. Run `python src/create_database.py` first.")
     st.stop()
 
 
-# -----------------------------
-# Query helper
-# -----------------------------
 
+# 4. Query helper
+# run_query() is the reusable database-question machine.
+# instead of running 
+# "con = duckdb.connect(str(DB_PATH), read_only=True)
+# result = con.execute(query).df()
+# con.close()"
+# make one function that run queries cleaner
+
+# If the same query is run again, remember the result instead of recalculating everything.
 @st.cache_data
+
 def run_query(query):
     """
     Run a SQL query against the local DuckDB database
     and return the result as a DataFrame.
     """
+    # opens the database in read-only mode. Also, read-only reduces DuckDB lock issues
     con = duckdb.connect(str(DB_PATH), read_only=True)
+    # This sends the SQL query to DuckDB and returns the result as a pandas DataFrame.
     result = con.execute(query).df()
     con.close()
     return result
+
+
+
+
+
 
 
 # -----------------------------
