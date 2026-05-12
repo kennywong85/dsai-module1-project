@@ -144,7 +144,6 @@ def main():
 
     # Make sure the db folder exists before creating the DuckDB file
     # This is where we will create the DuckDB database file.
-    DB_PATH = (PROJECT_ROOT / "db" / "jobs.duckdb").resolve()
     print("\nDatabase folder is ready")
 
 
