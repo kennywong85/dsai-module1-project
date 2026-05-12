@@ -4,45 +4,15 @@ import json
 import duckdb
 import pandas as pd
 
-
-
-# This finds the main project folder, no matter where I run this script from
-# Example:
-# /home/kennywong/code/ntu-sctp/repos/dsai-module1-individual-project
+# This finds the main project folder.
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
-# This points to the big CSV file. go uop twice into the data folder outisde of the project folder
-# The CSV is stored outside the Git repo because it is too large for GitHub.
-# Teammates should place the CSV inside:
+# Teammates should place the raw CSV file here:
 # data/raw/SGJobData.csv
 CSV_PATH = (PROJECT_ROOT / "data" / "raw" / "SGJobData.csv").resolve()
 
-# Decide where database file goes
-# This is where we will create the DuckDB database file.
-# This file is local and should not be committed to GitHub.
+# This is where the DuckDB database file will be created.
 DB_PATH = (PROJECT_ROOT / "db" / "jobs.duckdb").resolve()
-
-
-# mini cleaning script
-# This function takes the messy categories cell and turns it into a clean list of categories.
-# Convert the raw categories text into a list of category dictionaries.
-# Example input:
-# [{"id": 21, "category": "Information Technology"}]
-# Example output:
-# [{"category_id": 21, "category_name": "Information Technology"}]
-
-
-#If the category cell is missing, return nothing.
-#If the category cell is blank, return nothing.
-#Try to read the category text as structured data.
-#If it is one category, turn it into a list.
-#If it is not a list, ignore it.
-#For each category:
-#    check that it has an ID and name
-#    clean the ID and name
-#    save it
-#Return the clean list.
-
 
 def parse_categories(value):  
     # If the value is missing, return an empty list.
@@ -122,23 +92,23 @@ def main():
     # Check where the database file will be created.
     print("\nDatabase path:", DB_PATH)
 
-    # Safety check: stop the script if the CSV file cannot be found
-    # This prevents us running 200 lines of database code only to discover the CSV path was wrong.
+    # Safety check: stop the script if the CSV file cannot be found.
+    # This prevents us running the database code only to discover the CSV path was wrong.
     if not CSV_PATH.exists():
         raise FileNotFoundError(
-        f"""
-            CSV file not found.
+            f"""
+                CSV file not found.
 
-            Expected file location:
-            {CSV_PATH}
+                Expected file location:
+                {CSV_PATH}
 
-            Please place the raw CSV file here:
-            data/raw/SGJobData.csv
+                Please place the raw CSV file here:
+                data/raw/SGJobData.csv
 
-            Then run:
-            python src/create_database.py
-        """
-    )
+                Then run:
+                python src/create_database.py
+                """
+        )
 
     print("\nCSV file found")
 

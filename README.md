@@ -1,8 +1,9 @@
 ## Local Setup for Teammates
-This repository does not include the raw CSV file or the generated DuckDB database file.
-After cloning the repo, place the raw CSV file:
 
-```text
+This repository does not include the raw CSV file or the generated DuckDB database file.
+
+After cloning the repo, place the raw CSV file here:
+
 data/raw/SGJobData.csv
 
 dsai-module1-project/
@@ -18,12 +19,8 @@ dsai-module1-project/
 └── dashboard/
     └── app.py
 ---
+# What you need to do
 
-# What teammates need to do
-
-Send them this simple instruction:
-
-```text
 1. Clone the repo.
 2. Put SGJobData.csv into data/raw/.
 3. Run python src/create_database.py.
