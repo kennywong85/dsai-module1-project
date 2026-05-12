@@ -13,12 +13,14 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 # This points to the big CSV file. go uop twice into the data folder outisde of the project folder
 # The CSV is stored outside the Git repo because it is too large for GitHub.
-CSV_PATH = PROJECT_ROOT / "../../data/SGJobData.csv"
+# Teammates should place the CSV inside:
+# data/raw/SGJobData.csv
+CSV_PATH = (PROJECT_ROOT / "data" / "raw" / "SGJobData.csv").resolve()
 
 # Decide where database file goes
 # This is where we will create the DuckDB database file.
 # This file is local and should not be committed to GitHub.
-DB_PATH = PROJECT_ROOT / "db/jobs.duckdb"
+DB_PATH = (PROJECT_ROOT / "db" / "jobs.duckdb").resolve()
 
 
 # mini cleaning script
@@ -123,11 +125,26 @@ def main():
     # Safety check: stop the script if the CSV file cannot be found
     # This prevents us running 200 lines of database code only to discover the CSV path was wrong.
     if not CSV_PATH.exists():
-          raise FileNotFoundError(f"CSV file not found: {CSV_PATH}")
+        raise FileNotFoundError(
+        f"""
+            CSV file not found.
+
+            Expected file location:
+            {CSV_PATH}
+
+            Please place the raw CSV file here:
+            data/raw/SGJobData.csv
+
+            Then run:
+            python src/create_database.py
+        """
+    )
+
     print("\nCSV file found")
 
     # Make sure the db folder exists before creating the DuckDB file
-    DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+    # This is where we will create the DuckDB database file.
+    DB_PATH = (PROJECT_ROOT / "db" / "jobs.duckdb").resolve()
     print("\nDatabase folder is ready")
 
 
