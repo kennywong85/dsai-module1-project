@@ -417,21 +417,17 @@ def sort_dataframe(dataframe, sort_column, sort_direction):
 
 # 9. Dashboard tabs
 
-tab1, tab2, tab3, tab4, tab5 = st.tabs(
+tab5, tab1, tab2, tab3, tab4 = st.tabs(
     [
+        "Talent Shortage Signals",
         "Market Demand",
         "Salary Ranges",
         "Experience Requirements",
-        "Opportunity Score",
-        "Talent Shortage Signals"
+        "Opportunity Score"
     ]
 )
 
-
-# -----------------------------
-# Tab 1: Market Demand
-# -----------------------------
-
+# 9.1 Market Demand tab
 with tab1:
     st.header("Market Demand")
 
@@ -519,10 +515,7 @@ with tab1:
         st.bar_chart(chart_data["total_vacancies"])
 
 
-# -----------------------------
-# Tab 2: Salary Ranges
-# -----------------------------
-
+# 9.2 Salary Ranges tab
 with tab2:
     st.header("Salary Ranges")
 
@@ -602,10 +595,7 @@ with tab2:
     )
 
 
-# -----------------------------
-# Tab 3: Experience Requirements
-# -----------------------------
-
+# 9.3 Experience Requirements tab
 with tab3:
     st.header("Experience Requirements")
 
@@ -725,10 +715,7 @@ with tab3:
     )
 
 
-# -----------------------------
-# Tab 4: Career Opportunity Score
-# -----------------------------
-
+# 9.4 Opportunity Score tab
 with tab4:
     st.header("Career Opportunity Score")
 
@@ -978,20 +965,36 @@ with tab5:
     # Thus use the pre-made category shortage summary table, vw_talent_shortage_categories
     # Sorts by total vacancies, highest first. A category with many vacancies is more important to investigate than a tiny category with low applicant interest.
     talent_query = f"""
-    SELECT
-        category_name,
-        total_job_postings,
-        total_vacancies,
-        total_applications,
-        total_views,
-        median_average_salary,
-        applications_per_vacancy,
-        applications_per_posting,
-        views_per_posting
-    FROM vw_talent_shortage_categories
-    WHERE category_name IS NOT NULL
-      AND total_job_postings >= {minimum_shortage_postings}
-    ORDER BY total_vacancies DESC;
+        SELECT
+                category_name,
+
+                COUNT(DISTINCT job_post_id) AS total_job_postings,
+                SUM(number_of_vacancies) AS total_vacancies,
+                SUM(total_applications) AS total_applications,
+                SUM(total_views) AS total_views,
+                MEDIAN(average_salary) AS median_average_salary,
+
+                SUM(total_applications) * 1.0
+                    / NULLIF(SUM(number_of_vacancies), 0)
+                    AS applications_per_vacancy,
+
+                SUM(total_applications) * 1.0
+                    / NULLIF(COUNT(DISTINCT job_post_id), 0)
+                    AS applications_per_posting,
+
+                SUM(total_views) * 1.0
+                    / NULLIF(COUNT(DISTINCT job_post_id), 0)
+                    AS views_per_posting
+
+            FROM vw_career_coach_jobs
+
+            WHERE {filter_sql}
+
+            GROUP BY category_name
+
+            HAVING COUNT(DISTINCT job_post_id) >= {minimum_shortage_postings}
+
+            ORDER BY total_vacancies DESC;
     """
     
     # run query using query helper function
@@ -1001,7 +1004,50 @@ with tab5:
 
     # Show how many categories are included
     st.write(f"Categories included in shortage analysis: {len(talent_df)}")
+    
+    st.info(
+        """
+        This tab now responds to the global sidebar filters. Use the sidebar to narrow
+        the analysis by job category, salary range, experience range, and posting date.
+        """
+    )
 
+    with st.expander("How the Talent Shortage Signal Score is calculated", expanded=True):
+        st.markdown(
+            """
+            The Talent Shortage Signal Score is an explainable prototype score.
+            It looks for categories with **high hiring demand** but **weaker applicant interest**.
+
+            **1. Demand Score**
+
+            Demand is based on:
+            - total job postings
+            - total vacancies
+
+            The dashboard converts both into percentile-style scores, then combines them:
+            `Demand Score = 50% Posting Demand Score + 50% Vacancy Demand Score`
+
+            **2. Weak Interest Score**
+            Weak applicant interest is based on:
+            - applications per vacancy
+            - views per posting
+
+            Lower applications per vacancy suggests weaker applicant response relative to hiring demand.
+            Lower views per posting suggests weaker attention to job ads.
+            
+            The dashboard converts both into percentile-style scores, then combines them:
+            `Weak Interest Score = 70% Low Application Score + 30% Low View Score`
+            Applications are weighted more heavily than views because applying is a stronger signal than merely viewing.
+
+            **3. Final Talent Shortage Signal Score**
+
+            The final score combines demand and weak interest:
+            `Talent Shortage Signal Score = 60% Demand Score + 40% Weak Interest Score`
+
+            A higher score means a category may have stronger hiring demand but weaker applicant response.
+            This does **not** prove an actual labour shortage. It is a proxy signal for further workforce-planning investigation.
+            """
+        )
     # sanity check before proceeding, if dataframe table is not empty, proceed
     if talent_df.empty:
         st.warning("No categories match the selected shortage-analysis threshold.")
