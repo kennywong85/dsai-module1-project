@@ -9,11 +9,11 @@
 # 8. sort_dataframe()
 # 9. Dashboard tabs
 
-# 9.1 Market Demand tab
-# 9.2 Salary Ranges tab
-# 9.3 Experience Requirements tab
-# 9.4 Opportunity Score tab
-# 9.5 Talent Shortage Signals tab
+# 9.2 Market Demand tab
+# 9.3 Salary Ranges tab
+# 9.4 Experience Requirements tab
+# 9.5 Opportunity Score tab
+# 9.1 Talent Shortage Signals tab
 
 
 
@@ -427,7 +427,7 @@ tab5, tab1, tab2, tab3, tab4 = st.tabs(
     ]
 )
 
-# 9.1 Market Demand tab
+# 9.2 Market Demand tab
 with tab1:
     st.header("Market Demand")
 
@@ -515,7 +515,7 @@ with tab1:
         st.bar_chart(chart_data["total_vacancies"])
 
 
-# 9.2 Salary Ranges tab
+# 9.3 Salary Ranges tab
 with tab2:
     st.header("Salary Ranges")
 
@@ -595,7 +595,7 @@ with tab2:
     )
 
 
-# 9.3 Experience Requirements tab
+# 9.4 Experience Requirements tab
 with tab3:
     st.header("Experience Requirements")
 
@@ -715,7 +715,7 @@ with tab3:
     )
 
 
-# 9.4 Opportunity Score tab
+# 9.5 Opportunity Score tab
 with tab4:
     st.header("Career Opportunity Score")
 
@@ -927,7 +927,7 @@ with tab4:
             """
         )
 
-# 9.5 Talent Shortage Signals tab
+# 9.1 Talent Shortage Signals tab
 # Which categories have:
 # 1. high demand
 # 2. weaker applicant interest
